@@ -49,6 +49,10 @@ function App() {
         <div className="app-layout">
             {isConfigured ? (
                 <>
+                    <div
+                        className={`sidebar-backdrop ${isSidebarOpen ? 'active' : ''}`}
+                        onClick={() => setIsSidebarOpen(false)}
+                    ></div>
                     <ProjectSidebar
                         currentProject={currentProject}
                         setCurrentProject={setCurrentProject}

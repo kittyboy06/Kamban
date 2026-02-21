@@ -748,14 +748,36 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 
-/* Responsive */
+/* ================= Responsive Layout ================= */
+.sidebar-backdrop {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+    z-index: 25;
+    opacity: 0;
+    transition: opacity var(--transition-smooth);
+}
+
+.sidebar-backdrop.active {
+    display: block;
+    opacity: 1;
+}
+
 @media (max-width: 768px) {
+
+    /* Sidebar as Drawer */
     .sidebar {
         position: fixed;
         left: 0;
         top: 0;
         height: 100vh;
         transform: translateX(-100%);
+        z-index: 30;
     }
 
     .sidebar.open {
@@ -767,6 +789,57 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         display: inline-flex;
     }
 
+    /* Header & Layout Scaling */
+    .app-header {
+        padding: 0 1rem;
+    }
+
+    .header-left h1 {
+        font-size: 1.1rem;
+    }
+
+    .board-container {
+        padding: 1rem;
+    }
+
+    /* Board specific tweaks */
+    .board-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .board-title h2 {
+        font-size: 1.4rem;
+    }
+
+    .board-actions {
+        width: 100%;
+    }
+
+    .board-actions .btn-primary {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* Swipeable Columns */
+    .columns-container {
+        gap: 1rem;
+        padding-bottom: 1rem;
+    }
+
+    .column {
+        flex: 0 0 85vw;
+        /* Make it take up mostly screen but hints at scrolling */
+    }
+
+    /* Forms & Modals */
+    .modal-content {
+        padding: 1.5rem;
+        width: 95%;
+    }
+
     .form-row {
         flex-direction: column;
         gap: 0;
@@ -774,6 +847,22 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
     .form-group {
         margin-bottom: 1rem;
+    }
+
+    .priority-selector {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    /* Settings */
+    .settings-section {
+        padding: 1.25rem;
+    }
+
+    .database-status-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
     }
 }
 
