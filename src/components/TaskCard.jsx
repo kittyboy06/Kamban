@@ -1,5 +1,5 @@
 import { Draggable } from '@hello-pangea/dnd';
-import { Clock, PencilSimple, Trash } from '@phosphor-icons/react';
+import { Clock, PencilSimple, Trash, DotsSixVertical } from '@phosphor-icons/react';
 import { format, isBefore, startOfDay } from 'date-fns';
 
 export default function TaskCard({ task, index, onEdit, onDelete }) {
@@ -31,11 +31,26 @@ export default function TaskCard({ task, index, onEdit, onDelete }) {
                         <div className="task-labels">
                             <span className={`label-priority ${task.priority}`}>{task.priority}</span>
                         </div>
-                        {task.deadline && (
-                            <div className={`task-deadline ${isOverdue(task.deadline) ? 'overdue' : ''}`}>
-                                <Clock /> {formatDate(task.deadline)}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {task.deadline && (
+                                <div className={`task-deadline ${isOverdue(task.deadline) ? 'overdue' : ''}`}>
+                                    <Clock /> {formatDate(task.deadline)}
+                                </div>
+                            )}
+                            <div
+                                style={{
+                                    cursor: 'grab',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    padding: '2px',
+                                    marginRight: '-4px',
+                                    color: 'var(--text-tertiary)'
+                                }}
+                                title="Drag Task"
+                            >
+                                <DotsSixVertical size={20} weight="bold" />
                             </div>
-                        )}
+                        </div>
                     </div>
 
                     <h4>{task.title}</h4>
@@ -50,11 +65,15 @@ export default function TaskCard({ task, index, onEdit, onDelete }) {
                             </div>
                         </div>
 
-                        <div className="task-actions">
+                        <div
+                            className="task-actions"
+                            onPointerDown={e => e.stopPropagation()}
+                            onMouseDown={e => e.stopPropagation()}
+                        >
                             <button className="btn-icon edit-btn" onClick={() => onEdit(task)} title="Edit">
                                 <PencilSimple />
                             </button>
-                            <button className="btn-icon delete-btn" onClick={() => onDelete()} title="Delete">
+                            <button className="btn-icon delete-btn" onClick={() => onDelete(task.id)} title="Delete">
                                 <Trash />
                             </button>
                         </div>

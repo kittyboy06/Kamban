@@ -4,13 +4,38 @@ import KanbanBoard from './components/KanbanBoard';
 import SetupModal from './components/Modals/SetupModal';
 import Settings from './components/Settings';
 import Profile from './components/Profile';
+import RoleSelect from './components/RoleSelect';
+import DevLogin from './components/DevLogin';
+import DevDashboard from './components/DevDashboard';
+import AdminReports from './components/AdminReports';
 import { supabase, initSupabase, isSupabaseConfigured } from './lib/supabase';
+import { App as CapApp } from '@capacitor/app';
 
 function App() {
     const [isConfigured, setIsConfigured] = useState(false);
     const [currentProject, setCurrentProject] = useState(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [currentView, setCurrentView] = useState('board'); // 'board', 'settings', or 'profile'
+    const [currentView, setCurrentView] = useState('role_select');
+    const [devUser, setDevUser] = useState(null); // Used when currentView is dev_dashboard
+
+    useEffect(() => {
+        let listenerHandle;
+        CapApp.addListener('backButton', () => {
+            if (currentView === 'role_select') {
+                CapApp.exitApp();
+            } else {
+                setCurrentView('role_select');
+            }
+        }).then(handle => {
+            listenerHandle = handle;
+        });
+
+        return () => {
+            if (listenerHandle) {
+                listenerHandle.remove();
+            }
+        };
+    }, [currentView]);
 
     useEffect(() => {
         // 1. Check for Vite Environment Variables
@@ -24,7 +49,7 @@ function App() {
             }
         }
 
-        // 2. Fallback to localStorage (from previous Setup Modal entries)
+        // 2. Fallback to localStorage
         const savedUrl = localStorage.getItem('supabase-url');
         const savedKey = localStorage.getItem('supabase-key');
 
@@ -45,20 +70,55 @@ function App() {
         }
     };
 
+    const isAdminView = ['board', 'settings', 'profile', 'admin_reports'].includes(currentView);
+
     return (
         <div className="app-layout">
             {isConfigured ? (
                 <>
-                    <div
-                        className={`sidebar-backdrop ${isSidebarOpen ? 'active' : ''}`}
-                        onClick={() => setIsSidebarOpen(false)}
-                    ></div>
-                    <ProjectSidebar
-                        currentProject={currentProject}
-                        setCurrentProject={setCurrentProject}
-                        isOpen={isSidebarOpen}
-                        setIsOpen={setIsSidebarOpen}
-                    />
+                    {/* Admin Sidebar Elements */}
+                    {isAdminView && (
+                        <>
+                            <div
+                                className={`sidebar-backdrop ${isSidebarOpen ? 'active' : ''}`}
+                                onClick={() => setIsSidebarOpen(false)}
+                            ></div>
+                            <ProjectSidebar
+                                currentProject={currentProject}
+                                setCurrentProject={setCurrentProject}
+                                isOpen={isSidebarOpen}
+                                setIsOpen={setIsSidebarOpen}
+                            />
+                        </>
+                    )}
+
+                    {/* Router Setup */}
+                    {currentView === 'role_select' && (
+                        <RoleSelect
+                            onSelectRole={(r) => setCurrentView(r === 'admin' ? 'board' : 'dev_login')}
+                        />
+                    )}
+
+                    {currentView === 'dev_login' && (
+                        <DevLogin
+                            onBack={() => setCurrentView('role_select')}
+                            onLoginSuccess={(user) => {
+                                setDevUser(user);
+                                setCurrentView('dev_dashboard');
+                            }}
+                        />
+                    )}
+
+                    {currentView === 'dev_dashboard' && (
+                        <DevDashboard
+                            devUser={devUser}
+                            onLogout={() => {
+                                setDevUser(null);
+                                setCurrentView('role_select');
+                            }}
+                        />
+                    )}
+
                     {currentView === 'board' && (
                         <KanbanBoard
                             currentProject={currentProject}
@@ -68,6 +128,7 @@ function App() {
                     )}
                     {currentView === 'settings' && <Settings onNavigate={setCurrentView} />}
                     {currentView === 'profile' && <Profile onNavigate={setCurrentView} />}
+                    {currentView === 'admin_reports' && <AdminReports onNavigate={setCurrentView} />}
                 </>
             ) : (
                 <SetupModal onConnect={handleConfigSubmit} />

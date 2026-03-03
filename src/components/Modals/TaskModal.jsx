@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { createTask, updateTask } from '../../lib/supabase';
+import { createTask, updateTask, getDevelopers } from '../../lib/supabase';
 import { X } from '@phosphor-icons/react';
 
-export default function TaskModal({ currentProject, task, onClose, onSave }) {
+export default function TaskModal({ currentProject, task, onClose, onSave, onDelete }) {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [developerName, setDeveloperName] = useState('');
@@ -11,6 +11,9 @@ export default function TaskModal({ currentProject, task, onClose, onSave }) {
     const [deadline, setDeadline] = useState('');
     const [priority, setPriority] = useState('low');
     const [saving, setSaving] = useState(false);
+
+    // New State for Developers List
+    const [availableDevelopers, setAvailableDevelopers] = useState([]);
 
     useEffect(() => {
         if (task) {
@@ -22,7 +25,45 @@ export default function TaskModal({ currentProject, task, onClose, onSave }) {
             setDeadline(task.deadline || '');
             setPriority(task.priority || 'low');
         }
+
+        fetchDevelopers();
     }, [task]);
+
+    const fetchDevelopers = async () => {
+        try {
+            const devs = await getDevelopers();
+            setAvailableDevelopers(devs);
+        } catch (err) {
+            console.error("Failed to load developers for assignment:", err);
+        }
+    };
+
+    const handleDeveloperSelect = (e) => {
+        const selectedName = e.target.value;
+        setDeveloperName(selectedName);
+
+        if (!selectedName) {
+            setDeveloperDesignation('');
+            return;
+        }
+
+        const selectedDev = availableDevelopers.find(d => d.name === selectedName);
+        if (selectedDev) {
+            setDeveloperDesignation(selectedDev.designation || '');
+        } else if (task && selectedName === task.developer_name) {
+            // Fallback for legacy tasks assigned to deleted users 
+            setDeveloperDesignation(task.developer_designation || '');
+        } else {
+            setDeveloperDesignation('');
+        }
+    };
+
+    const handleDelete = async () => {
+        if (task && onDelete) {
+            await onDelete(task.id);
+            onClose();
+        }
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -79,12 +120,33 @@ export default function TaskModal({ currentProject, task, onClose, onSave }) {
 
                     <div className="form-row">
                         <div className="form-group half">
-                            <label>Developer Name</label>
-                            <input type="text" value={developerName} onChange={(e) => setDeveloperName(e.target.value)} placeholder="e.g. Alex" />
+                            <label>Assigned Developer</label>
+                            <select
+                                value={developerName}
+                                onChange={handleDeveloperSelect}
+                                className={!developerName ? 'text-placeholder' : ''}
+                            >
+                                <option value="">Unassigned</option>
+                                {availableDevelopers.map(dev => (
+                                    <option key={dev.id} value={dev.name}>
+                                        {dev.name} {dev.designation ? `(${dev.designation})` : ''}
+                                    </option>
+                                ))}
+                                {/* Include current assigned user if they were deleted from the system but are still on the task */}
+                                {task && task.developer_name && !availableDevelopers.some(d => d.name === task.developer_name) && (
+                                    <option value={task.developer_name}>{task.developer_name} (Archived User)</option>
+                                )}
+                            </select>
                         </div>
                         <div className="form-group half">
                             <label>Designation</label>
-                            <input type="text" value={developerDesignation} onChange={(e) => setDeveloperDesignation(e.target.value)} placeholder="e.g. Frontend Engineer" />
+                            <input
+                                type="text"
+                                value={developerDesignation}
+                                placeholder="Auto-filled from Developer"
+                                readOnly
+                                style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-tertiary)' }}
+                            />
                         </div>
                     </div>
 
@@ -122,6 +184,11 @@ export default function TaskModal({ currentProject, task, onClose, onSave }) {
                     </div>
 
                     <div className="modal-actions">
+                        {task && (
+                            <button type="button" className="btn-secondary" style={{ marginRight: 'auto', color: 'var(--priority-high)', borderColor: 'var(--priority-high)' }} onClick={handleDelete} disabled={saving}>
+                                Delete Task
+                            </button>
+                        )}
                         <button type="button" className="btn-secondary" onClick={onClose} disabled={saving}>Cancel</button>
                         <button type="submit" className="btn-primary" disabled={saving}>
                             {saving ? 'Saving...' : 'Save Task'}

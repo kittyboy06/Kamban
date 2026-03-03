@@ -3,7 +3,7 @@ import { DragDropContext, Droppable } from '@hello-pangea/dnd';
 import { getTasks, updateTask, deleteTask as deleteSupabaseTask } from '../lib/supabase';
 import Column from './Column';
 import TaskModal from './Modals/TaskModal';
-import { List, GearSix, Plus } from '@phosphor-icons/react';
+import { List, GearSix, Plus, ChartBar } from '@phosphor-icons/react';
 
 const COLUMNS = [
     { id: 'todo', title: 'To Do' },
@@ -12,6 +12,7 @@ const COLUMNS = [
 ];
 
 export default function KanbanBoard({ currentProject, toggleSidebar, onNavigate }) {
+    // ... preserving the rest until the header-right
     const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(false);
 
@@ -54,8 +55,6 @@ export default function KanbanBoard({ currentProject, toggleSidebar, onNavigate 
 
         const { source, destination, draggableId } = result;
         if (source.droppableId === destination.droppableId) {
-            // Same column reordering not fully supported in this simple schema without an 'order' field,
-            // but let's visually swap them in the local array if needed, or just ignore.
             return;
         }
 
@@ -75,15 +74,15 @@ export default function KanbanBoard({ currentProject, toggleSidebar, onNavigate 
     };
 
     const handleTaskDelete = async (taskId) => {
-        if (confirm("Are you sure you want to delete this task?")) {
-            setTasks(prev => prev.filter(t => t.id !== taskId));
-            try {
-                await deleteSupabaseTask(taskId);
-            } catch (e) {
-                console.error(e);
-                alert("Failed to delete task");
-                fetchTasks();
-            }
+        // Optimistic UI update
+        setTasks(prev => prev.filter(t => t.id !== taskId));
+
+        try {
+            await deleteSupabaseTask(taskId);
+        } catch (e) {
+            console.error(e);
+            alert("Failed to delete task");
+            fetchTasks(); // Revert UI if DB fails
         }
     };
 
@@ -110,6 +109,9 @@ export default function KanbanBoard({ currentProject, toggleSidebar, onNavigate 
                     <h1>{currentProject ? currentProject.name : 'Select a Project'}</h1>
                 </div>
                 <div className="header-right">
+                    <button className="btn-icon" title="Developer Reports" onClick={() => onNavigate('admin_reports')}>
+                        <ChartBar />
+                    </button>
                     <button className="btn-icon" title="Settings" onClick={() => onNavigate('settings')}>
                         <GearSix />
                     </button>
@@ -166,6 +168,7 @@ export default function KanbanBoard({ currentProject, toggleSidebar, onNavigate 
                     task={editingTask}
                     onClose={() => setIsModalOpen(false)}
                     onSave={fetchTasks}
+                    onDelete={handleTaskDelete}
                 />
             )}
         </div>
